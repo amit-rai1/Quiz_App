@@ -1,0 +1,129 @@
+import React, { useEffect, useState } from 'react';
+import { getAllQuizzesBySubject } from '../../services/apiServices';
+import { useParams, useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
+
+const QuizList = () => {
+  const [quizzes, setQuizzes] = useState([]);
+  const [subject, setSubject] = useState('');
+  const { subjectId } = useParams(); // Get subjectId from the URL
+  const navigate = useNavigate(); // Initialize useNavigate
+
+  useEffect(() => {
+    async function fetchQuizList() {
+      try {
+        const data = await getAllQuizzesBySubject(subjectId);
+
+        // Set subject name and quizzes
+        setSubject(data.subject);
+        setQuizzes(data.quizzes);
+      } catch (error) {
+        console.error(error);
+        toast.error('Failed to fetch quizzes');
+      }
+    }
+
+    fetchQuizList();
+  }, [subjectId]);
+
+  const handleQuizClick = () => {
+    navigate(`/quiz/${subjectId}`); // Navigate to QuizView with the subjectId
+  };
+
+  return (
+    <>
+      {/* Navbar */}
+      <nav className="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div className="container-fluid">
+          <a className="navbar-brand" href="/admin">
+            Quiz Portal
+          </a>
+          <button
+            className="navbar-toggler"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#navbarNav"
+            aria-controls="navbarNav"
+            aria-expanded="false"
+            aria-label="Toggle navigation"
+          >
+            <span className="navbar-toggler-icon"></span>
+          </button>
+          <div className="collapse navbar-collapse" id="navbarNav">
+            <ul className="navbar-nav ms-auto">
+              <li className="nav-item">
+                <a className="nav-link" href="/dashboard">
+                  Dashboard
+                </a>
+              </li>
+              <li className="nav-item">
+                <a className="nav-link" href="/quizzes">
+                  Quizzes
+                </a>
+              </li>
+              <li className="nav-item">
+                <a className="nav-link" href="/subjects">
+                  Subjects
+                </a>
+              </li>
+              <li className="nav-item">
+                <a className="nav-link" href="/students">
+                  Students
+                </a>
+              </li>
+              <li className="nav-item">
+                <a className="nav-link" href="/logout">
+                  Logout
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </nav>
+
+      {/* Main Content */}
+      <div className="container mt-4">
+        <h2>Quiz List for Subject: {subject}</h2>
+        {quizzes.length > 0 ? (
+          <table className="table table-bordered table-striped">
+            <thead className="table-dark">
+              <tr>
+                <th>#</th>
+                <th>Quiz Name</th>
+                <th>Scheduled Date</th>
+                <th>Scheduled Time</th>
+                <th>Duration (mins)</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {quizzes.map((quiz, index) => (
+                <tr key={quiz.id}>
+                  <td>{index + 1}</td>
+                  <td>{quiz.quizName}</td>
+                  <td>{quiz.scheduledDate}</td>
+                  <td>{quiz.scheduledTime}</td>
+                  <td>{quiz.durationInMinutes}</td>
+                  <td>{quiz.status}</td>
+                  <td>
+                    <button
+                      className="btn btn-primary btn-sm"
+                      onClick={handleQuizClick}
+                    >
+                      View Quiz
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <p>No quizzes found for this subject.</p>
+        )}
+      </div>
+    </>
+  );
+};
+
+export default QuizList;
