@@ -1,12 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const { protect, isAdmin } = require('../middlewares/authMiddleware');
-const { createCourse, addQuestion, uploadExcelQuestions, toggleTest, getQuestionsBySubjectId, viewQuestionForm } = require('../controllers/adminController');
+const { createCourse, getCourseDetails, uploadExcelQuestions, toggleTest, getQuestionsBySubjectId, viewQuestionForm } = require('../controllers/adminController');
 router.post('/course', protect, isAdmin, createCourse);
-router.get('/questions/:subjectId', protect, isAdmin, getQuestionsBySubjectId);
-router.get('/viewQuestionForm/:subjectId', protect, isAdmin, viewQuestionForm);
+router.get('/course/:courseName',protect, getCourseDetails);
+router.get('/questions/:subjectId', protect, getQuestionsBySubjectId);
+router.get('/viewQuestionForm/:subjectId', protect, viewQuestionForm);
 
 
-router.post('/question', protect, isAdmin, addQuestion);
+// router.post('/question', protect, isAdmin, addQuestion);
 router.post('/upload-questions', protect, isAdmin, uploadExcelQuestions);
 module.exports = router;

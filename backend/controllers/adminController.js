@@ -2,14 +2,93 @@ const Course = require('../models/Course');
 const Question = require('../models/Question');
 
 const XLSX = require('xlsx');
+// exports.createCourse = async (req, res) => {
+//   const course = await Course.create(req.body);
+//   res.status(201).json(course);
+// };
+
+
 exports.createCourse = async (req, res) => {
-  const course = await Course.create(req.body);
-  res.status(201).json(course);
+  const { courseName, subjectsPerSemester } = req.body; // subjectsPerSemester is a map
+
+  try {
+    // Build years and semesters dynamically
+    const years = [];
+
+    for (let y = 1; y <= 3; y++) {
+      const semesters = [];
+
+      for (let s = (y - 1) * 2 + 1; s <= y * 2; s++) {
+        semesters.push({
+          semester: s,
+          subjects: (subjectsPerSemester[s] || []).map(subjectName => ({ subjectName }))
+        });
+      }
+
+      years.push({ year: y, semesters });
+    }
+
+    const course = new Course({ courseName, years });
+    await course.save();
+
+    res.status(201).json({ message: 'Course created with subjects', course });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server Error', error });
+  }
 };
-exports.addQuestion = async (req, res) => {
-  const question = await Question.create(req.body);
-  res.status(201).json(question);
+
+// exports.getCourseDetails = async (req, res) => {
+//   try {
+//     const { courseName } = req.params; // Get course name from the URL parameter
+
+//     // Find the course by name (case-insensitive)
+//     const course = await Course.findOne({ courseName: { $regex: new RegExp(`^${courseName}$`, 'i') } });
+
+//     if (!course) {
+//       return res.status(404).json({ message: 'Course not found' });
+//     }
+
+//     res.status(200).json({ course });
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ message: 'Server Error', error });
+//   }
+// };
+
+exports.getCourseDetails = async (req, res) => {
+  try {
+    const { courseName } = req.params;
+
+    const course = await Course.findOne({
+      courseName: { $regex: new RegExp(`^${courseName}$`, 'i') }
+    }).lean(); // lean() returns plain JS object
+
+    if (!course) {
+      return res.status(404).json({ message: 'Course not found' });
+    }
+
+    // Transform subject _id to subjectId
+    course.years = course.years.map(year => ({
+      ...year,
+      semesters: year.semesters.map(sem => ({
+        ...sem,
+        subjects: sem.subjects.map(subject => ({
+          subjectId: subject._id, // Add subjectId
+          subjectName: subject.subjectName
+        }))
+      }))
+    }));
+
+    res.status(200).json({ course });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server Error', error });
+  }
 };
+
+
+
 
 
 exports.getQuestionsBySubjectId = async (req, res) => {
