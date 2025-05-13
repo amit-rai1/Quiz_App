@@ -7,6 +7,8 @@ import UploadQuestions from './components/Admin/UploadQuestions';
 import AdminDashboard from './components/Admin/AdminDashboard';
 import QuizView from './components/Admin/QuizView';
 import QuizList from './components/Admin/QuizList';
+import Dashboard from './components/User/Dashbord';
+import SignupForm from './components/SignupForm';
 
 function App() {
 
@@ -14,6 +16,7 @@ function App() {
     <>
      <Router>
       <Routes>
+        <Route path="/signup" element={<SignupForm />} />
         <Route path="/" element={<LoginPage />} />
         <Route path="/admin" element={<AdminLayout />}/>
         <Route path="dashboard" element={<AdminDashboard />} />
@@ -21,6 +24,7 @@ function App() {
         {/* <Route path="upload" element={<UploadQuestions />} /> */}
         <Route path="quiz/:subjectId" element={<QuizView/>} />
         <Route path="quiz-list/:subjectId" element={<QuizList />} />   
+        <Route path="user-dashboard" element={<Dashboard />} />
         {/* Other routes (signup, dashboard etc) we will add later */}
       </Routes>
     </Router>

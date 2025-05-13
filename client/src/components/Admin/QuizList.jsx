@@ -6,26 +6,29 @@ import { toast } from 'react-toastify';
 const QuizList = () => {
   const [quizzes, setQuizzes] = useState([]);
   const [subject, setSubject] = useState('');
+  
   const { subjectId } = useParams(); // Get subjectId from the URL
   const navigate = useNavigate(); // Initialize useNavigate
 
+  
   useEffect(() => {
     async function fetchQuizList() {
       try {
         const data = await getAllQuizzesBySubject(subjectId);
-
-        // Set subject name and quizzes
+  
         setSubject(data.subject);
         setQuizzes(data.quizzes);
+        lcalSotorage.setItem('subjectId', data.subjectId);
       } catch (error) {
-        console.error(error);
+        console.error("Error in fetchQuizList:", error);
         toast.error('Failed to fetch quizzes');
       }
     }
-
+  
     fetchQuizList();
   }, [subjectId]);
-
+  
+  
   const handleQuizClick = () => {
     navigate(`/quiz/${subjectId}`); // Navigate to QuizView with the subjectId
   };

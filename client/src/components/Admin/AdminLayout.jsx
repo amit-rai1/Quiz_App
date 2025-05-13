@@ -1,15 +1,68 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import UploadQuestions from './UploadQuestions';
+import { useNavigate } from 'react-router-dom';
+import { getCourses } from '../../services/apiServices';
+import { toast } from 'react-toastify';
 
 const AdminLayout = () => {
   const [showUploadQuestions, setShowUploadQuestions] = useState(false);
+  const [courses, setCourses] = useState([]);
+  const [selected, setSelected] = useState({}); // { [courseId]: { yearId, semesterId, subjectId } }
+  const navigate = useNavigate();
 
-  const handleCardClick = () => {
-    setShowUploadQuestions(true);
+  useEffect(() => {
+    async function fetchCourses() {
+      try {
+        const data = await getCourses();
+        setCourses(data);
+      } catch (err) {
+        toast.error('Failed to fetch courses');
+      }
+    }
+    fetchCourses();
+  }, []);
+
+  const handleSelect = (courseId, key, value) => {
+    setSelected(prev => {
+      const updated = { ...prev };
+      if (!updated[courseId]) updated[courseId] = {};
+      updated[courseId][key] = value;
+      // Reset lower selections if upper selection changes
+      if (key === 'yearId') {
+        updated[courseId].semesterId = '';
+        updated[courseId].subjectId = '';
+      }
+      if (key === 'semesterId') {
+        updated[courseId].subjectId = '';
+      }
+      return updated;
+    });
+  };
+
+  const getYears = (course) => course.years || [];
+  const getSemesters = (course, yearId) => {
+    const year = (course.years || []).find(y => y._id === yearId);
+    return year ? year.semesters : [];
+  };
+  const getSubjects = (course, yearId, semesterId) => {
+    const semesters = getSemesters(course, yearId);
+    const semester = semesters.find(s => s._id === semesterId);
+    return semester ? semester.subjects : [];
+  };
+
+  const handleUploadClick = (courseId) => {
+    // You can pass selected[courseId] to UploadQuestions if needed
+    setShowUploadQuestions(courseId);
   };
 
   const handleBackToDashboard = () => {
     setShowUploadQuestions(false);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    toast.success('Logout successful');
+    navigate("/");
   };
 
   return (
@@ -18,7 +71,11 @@ const AdminLayout = () => {
       <nav className="navbar navbar-expand-lg navbar-dark bg-primary">
         <div className="container-fluid">
           <a className="navbar-brand" href="/admin">
-            Quiz Portal
+            <img
+              src="/public/images/logo.png"
+              alt="Quiz Portal Logo"
+              style={{ height: "60px", marginRight: "10px" }}
+            />
           </a>
           <button
             className="navbar-toggler"
@@ -35,28 +92,11 @@ const AdminLayout = () => {
             <ul className="navbar-nav ms-auto">
               <li className="nav-item">
                 <a className="nav-link" href="/dashboard">
-                  Dashboard
+                  Home
                 </a>
               </li>
               <li className="nav-item">
-                <a className="nav-link" href="/quizzes">
-                  Quizzes
-                </a>
-              </li>
-              <li className="nav-item">
-                <a className="nav-link" href="/subjects">
-                  Subjects
-                </a>
-              </li>
-              <li className="nav-item">
-                <a className="nav-link" href="/students">
-                  Students
-                </a>
-              </li>
-              <li className="nav-item">
-                <a className="nav-link" href="/logout">
-                  Logout
-                </a>
+                <button className="btn btn-outline-light ms-3" onClick={handleLogout}>Logout</button>
               </li>
             </ul>
           </div>
@@ -67,13 +107,7 @@ const AdminLayout = () => {
       <div className="d-flex flex-grow-1">
         {/* Sidebar */}
         <div className="bg-dark text-white p-3" style={{ width: '250px' }}>
-          <h4 className="text-center mb-4">Quiz Portal</h4>
           <ul className="nav flex-column">
-            <li className="nav-item">
-              <a className="nav-link text-white" href="/dashboard">
-                Dashboard
-              </a>
-            </li>
             <li className="nav-item">
               <a className="nav-link text-white" href="/quizzes">
                 Quizzes
@@ -89,35 +123,94 @@ const AdminLayout = () => {
                 Students
               </a>
             </li>
-            <li className="nav-item mt-auto">
-              <a className="nav-link text-white" href="/logout">
-                Logout
-              </a>
-            </li>
           </ul>
         </div>
 
         {/* Main Content Area */}
         <div className="flex-grow-1 p-4">
           {!showUploadQuestions ? (
-            <div className="row">
-              {/* Card for Upload Questions */}
-              <div className="col-md-4">
-                <div
-                  className="card text-center"
-                  style={{ cursor: 'pointer' }}
-                  onClick={handleCardClick}
-                >
-                  <div className="card-body">
-                    <h5 className="card-title">Upload Questions</h5>
-                    <p className="card-text">
-                      Click here to upload questions for quizzes.
-                    </p>
-                  </div>
-                </div>
+            <div>
+              <h3>Courses</h3>
+              <div className="table-responsive">
+                <table className="table table-bordered align-middle">
+                  <thead>
+                    <tr>
+                      <th>Course</th>
+                      <th>Year</th>
+                      <th>Semester</th>
+                      <th>Subject</th>
+                      {/* <th>Quiz List</th> */}
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {courses.map(course => {
+                      const sel = selected[course._id] || {};
+                      const years = getYears(course);
+                      const semesters = getSemesters(course, sel.yearId);
+                      const subjects = getSubjects(course, sel.yearId, sel.semesterId);
+                      return (
+                        <tr key={course._id}>
+                          <td>{course.courseName}</td>
+                          <td>
+                            <select
+                              className="form-select"
+                              value={sel.yearId || ''}
+                              onChange={e => handleSelect(course._id, 'yearId', e.target.value)}
+                            >
+                              <option value="">Select Year</option>
+                              {years.map(y => (
+                                <option key={y._id} value={y._id}>
+                                  Year {y.year}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+                          <td>
+                            <select
+                              className="form-select"
+                              value={sel.semesterId || ''}
+                              onChange={e => handleSelect(course._id, 'semesterId', e.target.value)}
+                              disabled={!sel.yearId}
+                            >
+                              <option value="">Select Semester</option>
+                              {semesters.map(s => (
+                                <option key={s._id} value={s._id}>
+                                  Semester {s.semester}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+                          <td>
+                            <select
+                              className="form-select"
+                              value={sel.subjectId || ''}
+                              onChange={e => handleSelect(course._id, 'subjectId', e.target.value)}
+                              disabled={!sel.semesterId}
+                            >
+                              <option value="">Select Subject</option>
+                              {subjects.map(sub => (
+                                <option key={sub._id} value={sub._id}>
+                                  {sub.subjectName}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+                          <td>
+                            <button
+                              className="btn btn-primary"
+                              disabled={!sel.subjectId}
+                              onClick={() => handleUploadClick(course._id)}
+                            >
+                              Upload Quiz
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
-
-              {/* Add more cards here if needed */}
             </div>
           ) : (
             <div>

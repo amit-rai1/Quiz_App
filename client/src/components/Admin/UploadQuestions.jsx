@@ -4,14 +4,14 @@ import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
 
 const UploadQuestions = () => {
-  const [courses, setCourses] = useState([]);
-  const [selectedCourseId, setSelectedCourseId] = useState('');
-  const [selectedYearId, setSelectedYearId] = useState('');
-  const [selectedSemesterId, setSelectedSemesterId] = useState('');
-  const [selectedSubjectId, setSelectedSubjectId] = useState('');
-  const [file, setFile] = useState(null);
-  const [startTime, setStartTime] = useState('');
-  const [durationInMinutes, setDurationInMinutes] = useState('');
+  const [courses, setCourses] = useState([]); // List of courses
+  const [selectedCourseId, setSelectedCourseId] = useState(''); // Selected course ID
+  const [selectedYear, setSelectedYear] = useState(null); // Selected year object
+  const [selectedSemester, setSelectedSemester] = useState(null); // Selected semester object
+  const [selectedSubjectId, setSelectedSubjectId] = useState(''); // Selected subject ID
+  const [file, setFile] = useState(null); // File to upload
+  const [startTime, setStartTime] = useState(''); // Start time
+  const [durationInMinutes, setDurationInMinutes] = useState(''); // Duration
   const navigate = useNavigate(); // Initialize useNavigate
 
   useEffect(() => {
@@ -20,11 +20,11 @@ const UploadQuestions = () => {
 
   const fetchCourses = async () => {
     try {
-      const data = await getCourses();
-      setCourses(data);
+      const data = await getCourses(); // Fetch courses from API
+      setCourses(data); // Set courses in state
     } catch (error) {
       console.error(error);
-      toast.error("Failed to fetch courses");
+      toast.error('Failed to fetch courses');
     }
   };
 
@@ -32,7 +32,7 @@ const UploadQuestions = () => {
     e.preventDefault();
     try {
       if (!file || !selectedSubjectId || !startTime || !durationInMinutes) {
-        toast.error("Please select all fields and upload file");
+        toast.error('Please select all fields and upload a file');
         return;
       }
 
@@ -47,19 +47,20 @@ const UploadQuestions = () => {
 
       const response = await uploadExcelQuestions(formData);
 
-      toast.success(response.message || "Questions uploaded successfully!");
+      toast.success(response.message || 'Questions uploaded successfully!');
 
       // Navigate to QuizList page with the selected subjectId
       navigate(`/quiz-list/${selectedSubjectId}`);
     } catch (error) {
       console.error(error);
-      toast.error(error.response?.data?.message || "Something went wrong!");
+      toast.error(error.response?.data?.message || 'Something went wrong!');
     }
   };
 
-  const selectedCourse = courses.find(c => c._id === selectedCourseId);
-  const selectedYear = selectedCourse?.years.find(y => y._id === selectedYearId);
-  const selectedSemester = selectedYear?.semesters.find(s => s._id === selectedSemesterId);
+  const selectedCourse = courses.find((c) => c._id === selectedCourseId); // Find selected course
+  const years = selectedCourse?.years || []; // Get years from selected course
+  const semesters = selectedYear?.semesters || []; // Get semesters from selected year
+  const subjects = selectedSemester?.subjects || []; // Get subjects from selected semester
 
   return (
     <div className="container mt-4">
@@ -73,14 +74,16 @@ const UploadQuestions = () => {
             value={selectedCourseId}
             onChange={(e) => {
               setSelectedCourseId(e.target.value);
-              setSelectedYearId('');
-              setSelectedSemesterId('');
+              setSelectedYear(null);
+              setSelectedSemester(null);
               setSelectedSubjectId('');
             }}
           >
             <option value="">Select Course</option>
-            {courses.map(course => (
-              <option key={course._id} value={course._id}>{course.courseName}</option>
+            {courses.map((course) => (
+              <option key={course._id} value={course._id}>
+                {course.courseName}
+              </option>
             ))}
           </select>
         </div>
@@ -91,16 +94,19 @@ const UploadQuestions = () => {
             <label className="form-label">Select Year</label>
             <select
               className="form-select"
-              value={selectedYearId}
+              value={selectedYear?._id || ''}
               onChange={(e) => {
-                setSelectedYearId(e.target.value);
-                setSelectedSemesterId('');
+                const year = years.find((y) => y._id === e.target.value);
+                setSelectedYear(year);
+                setSelectedSemester(null);
                 setSelectedSubjectId('');
               }}
             >
               <option value="">Select Year</option>
-              {selectedCourse?.years.map(year => (
-                <option key={year._id} value={year._id}>{year.yearName}</option>
+              {years.map((year) => (
+                <option key={year._id} value={year._id}>
+                  Year {year.year}
+                </option>
               ))}
             </select>
           </div>
@@ -112,15 +118,18 @@ const UploadQuestions = () => {
             <label className="form-label">Select Semester</label>
             <select
               className="form-select"
-              value={selectedSemesterId}
+              value={selectedSemester?._id || ''}
               onChange={(e) => {
-                setSelectedSemesterId(e.target.value);
+                const semester = semesters.find((s) => s._id === e.target.value);
+                setSelectedSemester(semester);
                 setSelectedSubjectId('');
               }}
             >
               <option value="">Select Semester</option>
-              {selectedYear?.semesters.map(sem => (
-                <option key={sem._id} value={sem._id}>{sem.semesterName}</option>
+              {semesters.map((sem) => (
+                <option key={sem._id} value={sem._id}>
+                  Semester {sem.semester}
+                </option>
               ))}
             </select>
           </div>
@@ -136,8 +145,10 @@ const UploadQuestions = () => {
               onChange={(e) => setSelectedSubjectId(e.target.value)}
             >
               <option value="">Select Subject</option>
-              {selectedSemester?.subjects.map(sub => (
-                <option key={sub._id} value={sub._id}>{sub.subjectName}</option>
+              {subjects.map((sub) => (
+                <option key={sub._id} value={sub._id}>
+                  {sub.subjectName}
+                </option>
               ))}
             </select>
           </div>
@@ -178,7 +189,9 @@ const UploadQuestions = () => {
         </div>
 
         {/* Submit Button */}
-        <button type="submit" className="btn btn-primary">Upload Questions</button>
+        <button type="submit" className="btn btn-primary">
+          Upload Questions
+        </button>
       </form>
     </div>
   );
