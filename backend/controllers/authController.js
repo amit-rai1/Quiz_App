@@ -178,14 +178,19 @@ exports.register = async (req, res) => {
 
 exports.login = async (req, res) => {
   const { email, password } = req.body;
+  console.log("LOGIN REQUEST", email, password);
 
   try {
     const user = await User.findOne({ email });
+        console.log("FOUND USER:", user); // ✅
+
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
     const isMatch = await user.matchPassword(password);
+        console.log("PASSWORD MATCH:", isMatch); // ✅
+
 
     if (isMatch) {
       if (user.role === 'student') {

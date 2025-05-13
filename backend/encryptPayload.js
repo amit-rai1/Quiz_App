@@ -1,7 +1,7 @@
 const CryptoJS = require('crypto-js');
 
-// Define the secret key (same as in your .env file)
-const secretKey = '7utw7rhfs76r2wy27uy1rf';
+// Define the secret key (same as in your backend)
+const secretKey = '57rte7rigiduygdwo7';
 
 // Define the payload to encrypt
 const payload = {

@@ -37,7 +37,54 @@ exports.createCourse = async (req, res) => {
     res.status(500).json({ message: 'Server Error', error });
   }
 };
+exports.updateCourse = async (req, res) => {
+  const {  } = req.params;
+  const { courseName, subjectsPerSemester } = req.body;
 
+  try {
+    // Build years and semesters dynamically (same logic as create)
+    const years = [];
+    for (let y = 1; y <= 3; y++) {
+      const semesters = [];
+      for (let s = (y - 1) * 2 + 1; s <= y * 2; s++) {
+        semesters.push({
+          semester: s,
+          subjects: (subjectsPerSemester[s] || []).map(subjectName => ({ subjectName }))
+        });
+      }
+      years.push({ year: y, semesters });
+    }
+
+    const updatedCourse = await Course.findByIdAndUpdate(
+      courseId,
+      { courseName, years },
+      { new: true }
+    );
+
+    if (!updatedCourse) {
+      return res.status(404).json({ message: 'Course not found' });
+    }
+
+    res.status(200).json({ message: 'Course updated successfully', course: updatedCourse });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server Error', error });
+  }
+};
+exports.deleteCourse = async (req, res) => {
+  const { courseId } = req.params;
+
+  try {
+    const deleted = await Course.findByIdAndDelete(courseId);
+    if (!deleted) {
+      return res.status(404).json({ message: 'Course not found' });
+    }
+    res.status(200).json({ message: 'Course deleted successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server Error', error });
+  }
+};
 // exports.getCourseDetails = async (req, res) => {
 //   try {
 //     const { courseName } = req.params; // Get course name from the URL parameter
@@ -55,6 +102,32 @@ exports.createCourse = async (req, res) => {
 //     res.status(500).json({ message: 'Server Error', error });
 //   }
 // };
+exports.getAllCourses = async (req, res) => {
+  try {
+    // Fetch all courses from the database
+    const courses = await Course.find().lean(); // Use `lean()` for better performance
+
+    if (!courses || courses.length === 0) {
+      return res.status(404).json({ message: 'No courses found' });
+    }
+
+    // Transform the response if needed (e.g., map or filter data)
+    const transformedCourses = courses.map(course => ({
+      courseId: course._id, // Include course ID
+      courseName: course.courseName, // Include course name
+      years: course.years, // Include years and their details
+    }));
+
+    res.status(200).json({ success: true, courses: transformedCourses });
+  } catch (error) {
+    console.error('Error fetching courses:', error);
+    res.status(500).json({ success: false, message: 'Server Error', error });
+  }
+};
+
+
+
+
 
 exports.getCourseDetails = async (req, res) => {
   try {
