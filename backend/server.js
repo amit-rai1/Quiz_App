@@ -27,7 +27,9 @@ app.use(rateLimit({
 }));
 app.use(fileUpload());
 
-
+app.get('/api/ping', (req, res) => {
+  res.json({ message: 'Server is running!' });
+});
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
