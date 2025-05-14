@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { getAllQuizzesBySubject } from '../../services/apiServices';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import NavBar from '../Navbar';
 
 const QuizList = () => {
   const [quizzes, setQuizzes] = useState([]);
@@ -36,54 +37,7 @@ const QuizList = () => {
   return (
     <>
       {/* Navbar */}
-      <nav className="navbar navbar-expand-lg navbar-dark bg-primary">
-        <div className="container-fluid">
-          <a className="navbar-brand" href="/admin">
-            Quiz Portal
-          </a>
-          <button
-            className="navbar-toggler"
-            type="button"
-            data-bs-toggle="collapse"
-            data-bs-target="#navbarNav"
-            aria-controls="navbarNav"
-            aria-expanded="false"
-            aria-label="Toggle navigation"
-          >
-            <span className="navbar-toggler-icon"></span>
-          </button>
-          <div className="collapse navbar-collapse" id="navbarNav">
-            <ul className="navbar-nav ms-auto">
-              <li className="nav-item">
-                <a className="nav-link" href="/dashboard">
-                  Dashboard
-                </a>
-              </li>
-              <li className="nav-item">
-                <a className="nav-link" href="/quizzes">
-                  Quizzes
-                </a>
-              </li>
-              <li className="nav-item">
-                <a className="nav-link" href="/subjects">
-                  Subjects
-                </a>
-              </li>
-              <li className="nav-item">
-                <a className="nav-link" href="/students">
-                  Students
-                </a>
-              </li>
-              <li className="nav-item">
-                <a className="nav-link" href="/logout">
-                  Logout
-                </a>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </nav>
-
+<NavBar isAdmin={true} onLogout={handleLogout} /> 
       {/* Main Content */}
       <div className="container mt-4">
         <h2>Quiz List for Subject: {subject}</h2>

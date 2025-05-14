@@ -1,26 +1,29 @@
 import React, { useEffect, useState } from 'react';
 import { takeTest, viewquestion } from '../../services/apiServices';
-import { useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import jsPDF from 'jspdf';
 
-const QuizView = ({ role = "student" }) => {
-  const { subjectId } = useParams();
+const QuizView = ({ quiz, subjectId, onBack, role = "student" }) => {
   const [questions, setQuestions] = useState([]);
   const [quizInfo, setQuizInfo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [answers, setAnswers] = useState({});
-  const [testSubmitted, setTestSubmitted] = useState(false); // State to track if the test is submitted
+  const [testSubmitted, setTestSubmitted] = useState(false);
+  const [userInfo, setUserInfo] = useState({});
+  const [marks, setMarks] = useState(0);
+  const [subject, setSubject] = useState('');
 
   useEffect(() => {
     async function fetchQuizDetails() {
       try {
-        const storedSubjectId = localStorage.getItem('subjectId');
-        if (!storedSubjectId) {
-          toast.error("Subject ID not found in localStorage.");
+        if (!subjectId) {
+          toast.error("Subject ID not found.");
           return;
         }
 
-        const data = await viewquestion(storedSubjectId);
+        console.log("Calling API with subjectId:", subjectId);
+
+        const data = await viewquestion(subjectId);
 
         if (data?.quizzes?.length > 0 && data.quizzes[0]?.questions?.length > 0) {
           setQuestions(data.quizzes[0].questions);
@@ -37,7 +40,7 @@ const QuizView = ({ role = "student" }) => {
     }
 
     fetchQuizDetails();
-  }, []);
+  }, [subjectId]); // <== Ensure subjectId is a dependency
 
   const handleOptionChange = (questionId, selectedOption) => {
     setAnswers((prevAnswers) => ({
@@ -49,22 +52,47 @@ const QuizView = ({ role = "student" }) => {
   const handleSubmit = async () => {
     try {
       const testData = {
+        subjectId, // Ensure this is passed with the request
         responses: Object.keys(answers).map((questionId) => ({
           questionId,
           selectedOption: answers[questionId],
         })),
       };
 
-      await takeTest(testData);
+      const response = await takeTest(testData);
 
-      // Set testSubmitted to true to show the confirmation card
-      setTestSubmitted(true);
-
-      toast.success('Test submitted successfully!');
+      if (response) {
+        setTestSubmitted(true);
+        setUserInfo(response.userInfo);  // Save user info (name, email)
+        setMarks(response.totalMarks);    // Save total marks
+        setSubject(response.data.subject);    // Save the subject
+        toast.success('Test submitted successfully!');
+      }
     } catch (error) {
       console.error('Error submitting test:', error);
       toast.error(error.message || 'Failed to submit test.');
     }
+  };
+
+  // Download result as PDF
+  const downloadResult = () => {
+    const doc = new jsPDF();
+    
+    // Add the logo to PDF
+    const logo = new Image();
+    logo.src = '/public/images/logo.png'; // Use the relative path to your logo
+    doc.addImage(logo, 'PNG', 10, 10, 60, 60); // Position and size of the logo
+
+    // Add the rest of the PDF content
+    doc.text(`Test Results`, 10, 80);
+    doc.text(`Name: ${userInfo.name}`, 10, 90);
+    doc.text(`Email: ${userInfo.email}`, 10, 100);
+    doc.text(`Subject: ${subject}`, 10, 110);
+    doc.text(`Total Questions: ${questions.length}`, 10, 120);
+    doc.text(`Total Marks: ${marks}`, 10, 130);
+
+    // Save the PDF
+    doc.save('test-result.pdf');
   };
 
   if (loading) {
@@ -76,24 +104,66 @@ const QuizView = ({ role = "student" }) => {
       <div className="row">
         <div className="col-md-12">
           {testSubmitted ? (
-            // Confirmation card after test submission
             <div className="card text-center shadow-sm">
               <div className="card-body">
-                <h3 className="card-title">Thank You!</h3>
-                <p className="card-text">
-                  Your test has been submitted successfully. You will be notified once the results are available.
-                </p>
-                <button
-                  className="btn btn-primary"
-                  onClick={() => window.location.reload()} // Reload the page or navigate to another route
-                >
-                  Go Back to Dashboard
-                </button>
+                <img
+                  src="/public/images/logo.png"
+                  alt="Quiz Portal Logo"
+                  style={{ height: "60px", marginRight: "10px" }}
+                />
+                <h3 className="card-title">Test Submission Completed</h3>
+
+                {/* User Info */}
+                <div className="card-text">
+                  <h5>User Information:</h5>
+                  <ul className="list-group">
+                    <li className="list-group-item">Name: {userInfo.name}</li>
+                    <li className="list-group-item">Email: {userInfo.email}</li>
+                    <li className="list-group-item">Subject: {subject}</li>
+                  </ul>
+                </div>
+
+                {/* Test Results */}
+                <div className="mt-4">
+                  <h5>Test Results</h5>
+                  <p>
+                    Total Questions: {questions.length}<br />
+                    Total Marks: {marks}
+                  </p>
+                </div>
+
+                <div className="mt-3">
+                  {/* Go to Dashboard Button */}
+                  <button
+                    className="btn btn-outline-primary btn-sm mx-2"
+                    onClick={() => window.location.reload()}
+                    style={{
+                      padding: "8px 20px",
+                      fontSize: "14px",
+                      borderRadius: "20px",
+                    }}
+                  >
+                    Go to Dashboard
+                  </button>
+
+                  {/* Download Result Button */}
+                  <button
+                    className="btn btn-outline-secondary btn-sm mx-2"
+                    onClick={downloadResult}
+                    style={{
+                      padding: "8px 20px",
+                      fontSize: "14px",
+                      borderRadius: "20px",
+                    }}
+                  >
+                    Download Result
+                  </button>
+                </div>
               </div>
             </div>
           ) : (
-            // Quiz questions and submit button
             <>
+              {/* Display the quiz as normal before submission */}
               <h3 id="overview">Quiz Details</h3>
 
               {quizInfo && (
@@ -132,6 +202,7 @@ const QuizView = ({ role = "student" }) => {
                 </div>
               )}
 
+              {/* Render questions */}
               <h4 id="questions">Questions ({questions.length})</h4>
               {questions.map((question, index) => (
                 <div key={question._id} className="card mb-3">
@@ -150,7 +221,7 @@ const QuizView = ({ role = "student" }) => {
                           name={`q-${index}`}
                           value={opt}
                           onChange={() => handleOptionChange(question._id, opt)}
-                          style={{ transform: "scale(1.5)", cursor: "pointer", accentColor: "black", }}
+                          style={{ transform: "scale(1.5)", cursor: "pointer", accentColor: "black" }}
                         />
                       </div>
                     ))}

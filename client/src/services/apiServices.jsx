@@ -26,7 +26,7 @@ export const getAllQuizzesBySubject = async (subjectId) => {
   try {
     const response = await api.get(`/admin/questions/${subjectId}`);
 
-    const data = response.data?.data || response.data; // <-- Fix here
+    const data = response.data?.data || response.data; 
     return data;
   } catch (error) {
     console.error("Error fetching quizzes:", error);
